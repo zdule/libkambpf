@@ -49,7 +49,7 @@ struct kambpf_update_entry {
     union {
     	__u32 table_pos;
     	__u32 bpf_return_program_fd;
-    }
+    };
 };
 
 _Static_assert(sizeof(struct kambpf_update_entry) == 16, 
