@@ -24,4 +24,5 @@ struct kambpf_updates_buffer {
 struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_entries);
 long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num);
 uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd);
+uint32_t kambpf_add_return_only_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd);
 void kambpf_free_updates_buffer(struct kambpf_updates_buffer *buf);

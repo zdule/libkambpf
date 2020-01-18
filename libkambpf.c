@@ -114,6 +114,25 @@ long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num)
     return ioctl(buf->fd, IOCTL_MAGIC, (unsigned long) num);
 }
 
+uint32_t kambpf_add_return_only_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd) {
+    if (!buf) {
+        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
+        maybe_quit();
+        return -EINVAL;
+    }
+    if (buf->max_entries == 0) {
+        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
+        maybe_quit();
+        return -EINVAL;
+
+    }
+    buf->update_entries[0].instruction_address = addr;
+    buf->update_entries[0].bpf_program_fd = -1;
+    buf->update_entries[0].bpf_return_program_fd = fd;
+    kambpf_submit_updates(buf, 1); 
+    return buf->update_entries[0].table_pos;
+}
+
 uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd) {
     if (!buf) {
         fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
