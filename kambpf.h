@@ -11,9 +11,8 @@ struct probe_table_entry {
     unsigned long instruciton_address;
     union {
         struct {
-            unsigned long call_destination;
-            void *ebpf_program;
             void *data;
+			__u8 noop[2];
         };
         struct _probe_table_empty_entry _ee;
     };
@@ -56,6 +55,6 @@ _Static_assert(sizeof(struct kambpf_update_entry) == 16,
                "kambpf_update_entry must have a power of two size to fill pages evenly");
 
 #define IOCTL_MAGIC 0x3D1E
-#define TEST_ENTRY_BPF_FD -1
+#define KAMBPF_NOOP_FD -1
 
 #endif // KAMBPF_H
