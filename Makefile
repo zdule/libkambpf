@@ -1,13 +1,12 @@
-SRC_DIR ?= .
-BUILD_DIR ?= ./build
+S ?= .
+B ?= ./build
 
-headers := $(SRC_DIR)/libkambp.h  $(SRC_DIR)/kambpf.h  $(SRC_DIR)/kambpf_user.h
-srcfile := $(SRC_DIR)/libkambpf.c
+srcfile := $(S)/libkambpf.c
 
-$(BUILD_DIR)/libkambpf.o: $(srcfile) $(header) | $(BUILD_DIR)
+$(B)/libkambpf.o: $(srcfile) | $(B)
 	gcc -o $@ -c $<
 
-$(BUILD_DIR):
+$(B):
 	mkdir -p $@
 
 

@@ -114,7 +114,7 @@ long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num)
     return ioctl(buf->fd, IOCTL_MAGIC, (unsigned long) num);
 }
 
-uint32_t kambpf_add_return_only_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd) {
+uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd, int ret_fd) {
     if (!buf) {
         fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
         maybe_quit();
@@ -127,8 +127,8 @@ uint32_t kambpf_add_return_only_probe(struct kambpf_updates_buffer *buf, uint64_
 
     }
     buf->update_entries[0].instruction_address = addr;
-    buf->update_entries[0].bpf_program_fd = -1;
-    buf->update_entries[0].bpf_return_program_fd = fd;
+    buf->update_entries[0].bpf_program_fd = fd;
+    buf->update_entries[0].bpf_return_program_fd = ret_fd;
     kambpf_submit_updates(buf, 1); 
     return buf->update_entries[0].table_pos;
 }
@@ -147,9 +147,15 @@ uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int 
     }
     buf->update_entries[0].instruction_address = addr;
     buf->update_entries[0].bpf_program_fd = fd;
-    buf->update_entries[0].bpf_return_program_fd = -1;
+    buf->update_entries[0].bpf_return_program_fd = KAMBPF_NOOP_FD;
     kambpf_submit_updates(buf, 1); 
     return buf->update_entries[0].table_pos;
+}
+
+void kambpf_remove_probe(struct kambpf_updates_buffer *buf, uint32_t pos) {
+	buf->update_entries[0].instruction_address = 0;
+	buf->update_entries[0].table_pos = pos;
+	kambpf_submit_updates(buf, 1); 
 }
 
 void kambpf_free_updates_buffer(struct kambpf_updates_buffer *buf) {
