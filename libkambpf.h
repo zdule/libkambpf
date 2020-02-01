@@ -22,6 +22,8 @@ struct kambpf_updates_buffer {
 };
 
 struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_entries);
+int kambpf_updates_set_entry(struct kambpf_updates_buffer *buf, uint32_t pos, uint64_t addr, int fd, int ret_fd);
+int kambpf_updates_set_entry_remove(struct kambpf_updates_buffer *buf, uint32_t pos, uint32_t id);
 long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num);
 uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd);
 uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd, int ret_fd);

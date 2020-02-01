@@ -105,56 +105,62 @@ erralloc:
     return NULL;
 }
 
-long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num) {
+#define return_if_err(expr) \
+    do { \
+        int check_err = (expr); \
+        if (check_err) return check_err; \
+    } while(0)
+
+int check_updates_buffer(struct kambpf_updates_buffer *buf) {
     if (!buf) {
         fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
         maybe_quit();
         return -EINVAL;
     }
+    return 0;
+}
+
+int check_has_enough_entries(struct kambpf_updates_buffer *buf, int num) {
+    if (buf->max_entries < num) {
+        fprintf(stderr, "Not enough entries in the updates buffer, have %d required %d\n", buf->max_entries, num);
+        maybe_quit();
+        return -EINVAL;
+    }
+    return 0;
+}
+
+long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num) {
+    return_if_err(check_updates_buffer(buf));
+    return_if_err(check_has_enough_entries(buf,num));
     return ioctl(buf->fd, IOCTL_MAGIC, (unsigned long) num);
 }
 
-uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd, int ret_fd) {
-    if (!buf) {
-        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
-        maybe_quit();
-        return -EINVAL;
-    }
-    if (buf->max_entries == 0) {
-        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
-        maybe_quit();
-        return -EINVAL;
+int kambpf_updates_set_entry(struct kambpf_updates_buffer *buf, uint32_t pos, uint64_t addr, int fd, int ret_fd) {
+    return_if_err(check_updates_buffer(buf));
+    return_if_err(check_has_enough_entries(buf,pos+1));
+    buf->update_entries[pos].instruction_address = addr;
+    buf->update_entries[pos].bpf_program_fd = fd;
+    buf->update_entries[pos].bpf_return_program_fd = ret_fd;
+}
 
-    }
-    buf->update_entries[0].instruction_address = addr;
-    buf->update_entries[0].bpf_program_fd = fd;
-    buf->update_entries[0].bpf_return_program_fd = ret_fd;
-    kambpf_submit_updates(buf, 1); 
+
+uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd, int ret_fd) {
+    return_if_err(kambpf_updates_set_entry(buf, 0, addr, fd, ret_fd));
+    return_if_err(kambpf_submit_updates(buf, 1));
     return buf->update_entries[0].table_pos;
 }
 
 uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd) {
-    if (!buf) {
-        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
-        maybe_quit();
-        return -EINVAL;
-    }
-    if (buf->max_entries == 0) {
-        fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
-        maybe_quit();
-        return -EINVAL;
-
-    }
-    buf->update_entries[0].instruction_address = addr;
-    buf->update_entries[0].bpf_program_fd = fd;
-    buf->update_entries[0].bpf_return_program_fd = KAMBPF_NOOP_FD;
-    kambpf_submit_updates(buf, 1); 
+    return_if_err(kambpf_updates_set_entry(buf, 0, addr, fd, -1));
+    return_if_err(kambpf_submit_updates(buf, 1));
     return buf->update_entries[0].table_pos;
 }
 
-void kambpf_remove_probe(struct kambpf_updates_buffer *buf, uint32_t pos) {
-	buf->update_entries[0].instruction_address = 0;
-	buf->update_entries[0].table_pos = pos;
+int kambpf_updates_set_entry_remove(struct kambpf_updates_buffer *buf, uint32_t pos, uint32_t id) {
+    return_if_err(check_updates_buffer(buf));
+    return_if_err(check_has_enough_entries(buf,pos+1));
+	buf->update_entries[pos].instruction_address = 0;
+	buf->update_entries[pos].table_pos = id;
 	kambpf_submit_updates(buf, 1); 
 }
 
