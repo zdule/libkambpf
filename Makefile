@@ -1,9 +1,13 @@
 S ?= .
 B ?= ./build
 
+.PHONY: libkambpf
+
+libkambpf: $B/libkambpf.so $B/libkambpf.o
+
 srcfile := $(S)/libkambpf.c
 
-$(B)/libkambpf.dll: $(B)/libkambpf.o
+$(B)/libkambpf.so: $(B)/libkambpf.o
 	gcc -shared -fPIC -o $@ $<
 
 $(B)/libkambpf.o: $(srcfile) | $(B)

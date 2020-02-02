@@ -29,7 +29,7 @@ struct kambpf_list_buffer *kambpf_open_list_device(char *path, int max_entries) 
         goto erralloc;
     }
 
-    int fd_list = open(path, O_RDWR);
+    int fd_list = open(path, O_RDONLY);
     if (fd_list < 0) {
         perror("Opening list_dev failed");
         goto erropen;
@@ -54,7 +54,6 @@ erropen:
 erralloc:
     maybe_quit();
     return NULL;
-    
 }
 
 void kambpf_free_list_buffer(struct kambpf_list_buffer *buf) {
@@ -80,7 +79,8 @@ struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_ent
 
     int fd_update = open(path, O_RDWR);
     if (fd_update < 0) {
-        perror("Opening update_dev failed");
+		fprintf(stderr,"Unable to open update_dev at %s\n",path);
+		perror("Opening update_dev failed");
         goto erropen;
     }
 
@@ -132,6 +132,7 @@ int check_has_enough_entries(struct kambpf_updates_buffer *buf, int num) {
 long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num) {
     return_if_err(check_updates_buffer(buf));
     return_if_err(check_has_enough_entries(buf,num));
+    printf("Submitting %lu updates\n",num);
     return ioctl(buf->fd, IOCTL_MAGIC, (unsigned long) num);
 }
 
@@ -143,6 +144,12 @@ int kambpf_updates_set_entry(struct kambpf_updates_buffer *buf, uint32_t pos, ui
     buf->update_entries[pos].bpf_return_program_fd = ret_fd;
 }
 
+int kambpf_updates_get_id(struct kambpf_updates_buffer *buf, uint32_t pos) {
+    return_if_err(check_updates_buffer(buf));
+    return_if_err(check_has_enough_entries(buf,pos+1));
+    printf("Return value %d\n",buf->update_entries[pos].table_pos);
+    return buf->update_entries[pos].table_pos;
+}
 
 uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd, int ret_fd) {
     return_if_err(kambpf_updates_set_entry(buf, 0, addr, fd, ret_fd));
@@ -159,9 +166,8 @@ uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int 
 int kambpf_updates_set_entry_remove(struct kambpf_updates_buffer *buf, uint32_t pos, uint32_t id) {
     return_if_err(check_updates_buffer(buf));
     return_if_err(check_has_enough_entries(buf,pos+1));
-	buf->update_entries[pos].instruction_address = 0;
-	buf->update_entries[pos].table_pos = id;
-	kambpf_submit_updates(buf, 1); 
+    buf->update_entries[pos].instruction_address = 0;
+    buf->update_entries[pos].table_pos = id;
 }
 
 void kambpf_free_updates_buffer(struct kambpf_updates_buffer *buf) {

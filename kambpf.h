@@ -12,7 +12,7 @@ struct probe_table_entry {
     union {
         struct {
             void *data;
-			__u64 noop[2];
+            __u64 noop[2];
         };
         struct _probe_table_empty_entry _ee;
     };
