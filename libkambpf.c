@@ -111,6 +111,12 @@ erralloc:
         if (check_err) return check_err; \
     } while(0)
 
+#define void_ret_if_err(expr) \
+    do { \
+        if (expr) return; \
+    } while(0)
+
+
 int check_updates_buffer(struct kambpf_updates_buffer *buf) {
     if (!buf) {
         fprintf(stderr, "Trying to sumbit updates to a NULL buffer\n");
@@ -142,6 +148,7 @@ int kambpf_updates_set_entry(struct kambpf_updates_buffer *buf, uint32_t pos, ui
     buf->update_entries[pos].instruction_address = addr;
     buf->update_entries[pos].bpf_program_fd = fd;
     buf->update_entries[pos].bpf_return_program_fd = ret_fd;
+	return 0;
 }
 
 int kambpf_updates_get_id(struct kambpf_updates_buffer *buf, uint32_t pos) {
@@ -158,7 +165,9 @@ uint32_t kambpf_add_return_probe(struct kambpf_updates_buffer *buf, uint64_t add
 }
 
 uint32_t kambpf_add_probe(struct kambpf_updates_buffer *buf, uint64_t addr, int fd) {
+	printf("\n\n\nChecking result\n");
     return_if_err(kambpf_updates_set_entry(buf, 0, addr, fd, -1));
+	printf("Checking result\n");
     return_if_err(kambpf_submit_updates(buf, 1));
     return buf->update_entries[0].table_pos;
 }
@@ -168,6 +177,12 @@ int kambpf_updates_set_entry_remove(struct kambpf_updates_buffer *buf, uint32_t 
     return_if_err(check_has_enough_entries(buf,pos+1));
     buf->update_entries[pos].instruction_address = 0;
     buf->update_entries[pos].table_pos = id;
+	return 0;
+}
+
+void kambpf_remove_probe(struct kambpf_updates_buffer *buf, uint32_t id) {
+    void_ret_if_err(kambpf_updates_set_entry_remove(buf, 0, id));
+    void_ret_if_err(kambpf_submit_updates(buf, 1));
 }
 
 void kambpf_free_updates_buffer(struct kambpf_updates_buffer *buf) {
