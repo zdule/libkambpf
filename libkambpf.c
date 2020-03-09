@@ -69,6 +69,11 @@ void kambpf_free_list_buffer(struct kambpf_list_buffer *buf) {
     free(buf);
 }
 
+static int update_buffer_pages_needed(int num_entries) {
+    int page_size = getpagesize();
+    return (num_entries*(sizeof(struct kambpf_update_entry)) +  page_size-1) / page_size;
+}
+
 struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_entries) {
     struct kambpf_updates_buffer *buf = (struct kambpf_updates_buffer *)
         malloc(sizeof(struct kambpf_updates_buffer));
@@ -84,15 +89,15 @@ struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_ent
         goto erropen;
     }
 
-    buf->pages = 4;
-    void *update_start = mmap(0, 4*getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd_update, 0);
+    buf->pages = update_buffer_pages_needed(max_entries);
+    void *update_start = mmap(0, buf->pages*getpagesize(), PROT_READ | PROT_WRITE, MAP_SHARED, fd_update, 0);
     if (update_start == MAP_FAILED) {
         perror("mmaping update_dev failed");
         goto errmap;
     }
 
     buf->fd = fd_update;
-    buf->max_entries = 4*getpagesize()/(sizeof(struct kambpf_update_entry));
+    buf->max_entries = buf->pages*getpagesize()/(sizeof(struct kambpf_update_entry));
     buf->update_entries = (struct kambpf_update_entry *) update_start;
     return buf;
 
@@ -138,7 +143,7 @@ int check_has_enough_entries(struct kambpf_updates_buffer *buf, int num) {
 long kambpf_submit_updates(struct kambpf_updates_buffer *buf, unsigned long num) {
     return_if_err(check_updates_buffer(buf));
     return_if_err(check_has_enough_entries(buf,num));
-    printf("Submitting %lu updates\n",num);
+    //printf("Submitting %lu updates\n",num);
     return ioctl(buf->fd, IOCTL_MAGIC, (unsigned long) num);
 }
 
@@ -154,7 +159,7 @@ int kambpf_updates_set_entry(struct kambpf_updates_buffer *buf, uint32_t pos, ui
 int kambpf_updates_get_id(struct kambpf_updates_buffer *buf, uint32_t pos) {
     return_if_err(check_updates_buffer(buf));
     return_if_err(check_has_enough_entries(buf,pos+1));
-    printf("Return value %d\n",buf->update_entries[pos].table_pos);
+    //printf("Return value %d\n",buf->update_entries[pos].table_pos);
     return buf->update_entries[pos].table_pos;
 }
 
