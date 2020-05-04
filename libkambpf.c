@@ -20,6 +20,13 @@ void maybe_quit() {
     }
 }
 
+static int list_buffer_pages_needed(int num_entries) {
+    int page_size = getpagesize();
+    // one extra page is added to account for the header which is up to one page.
+    // this is not true in general, but it is true for now.
+    // we would need to memory-map the device and get the offset from the header.
+    return (num_entries*(sizeof(struct probe_table_entry)) +  page_size-1) / page_size + 1;
+}
 struct kambpf_list_buffer *kambpf_open_list_device(char *path, int max_entries) {
     struct kambpf_list_buffer *buf = (struct kambpf_list_buffer *)
         malloc(sizeof(struct kambpf_list_buffer));
@@ -35,8 +42,8 @@ struct kambpf_list_buffer *kambpf_open_list_device(char *path, int max_entries) 
         goto erropen;
     }
 
-    buf->pages = 4;
-    void *list_start = mmap(0, 4*getpagesize(), PROT_READ, MAP_SHARED, fd_list, 0);
+    buf->pages = list_buffer_pages_needed(max_entries);
+    void *list_start = mmap(0, buf->pages*getpagesize(), PROT_READ, MAP_SHARED, fd_list, 0);
     if (list_start == MAP_FAILED) {
         perror("mmaping list_dev failed");
         goto errmap;
@@ -45,6 +52,7 @@ struct kambpf_list_buffer *kambpf_open_list_device(char *path, int max_entries) 
     buf->fd = fd_list;
     buf->header = (struct probe_table_header *) list_start;
     buf->entries = (struct probe_table_entry *) (list_start + buf->header->start_offset);
+    //printf("%p %p %u\n", buf->header, buf->entries, buf->header->start_offset);
     return buf;
 
 errmap:
@@ -84,8 +92,8 @@ struct kambpf_updates_buffer *kambpf_open_updates_device(char *path, int max_ent
 
     int fd_update = open(path, O_RDWR);
     if (fd_update < 0) {
-		fprintf(stderr,"Unable to open update_dev at %s\n",path);
-		perror("Opening update_dev failed");
+        fprintf(stderr,"Unable to open update_dev at %s\n",path);
+        perror("Opening update_dev failed");
         goto erropen;
     }
 
