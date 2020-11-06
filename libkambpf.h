@@ -1,3 +1,11 @@
+/*
+    This file is part of the libkambpf library (https://github.com/zdule/libkambpf).
+    It is file is offered under two licenses GPLv2 and Apache License Version 2.
+    For more information see the LICENSE file at the root of the library.
+
+    Copyright 2020 Dusan Zivanovic
+*/
+
 #include "kambpf_user.h"
 #include <stdint.h>
 #include <stdbool.h>
